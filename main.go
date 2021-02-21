@@ -13,6 +13,7 @@ import (
 
 	"github.com/jinzhu/now"
 	"github.com/robfig/cron"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Event struct {
@@ -65,13 +66,20 @@ const html = `
 `
 
 func run(args []string) ([]byte, error) {
-	if len(args) < 2 {
-		return nil, errors.New("please specify cron spec")
+	var input string
+	if terminal.IsTerminal(0) {
+		if len(args) < 2 {
+			return nil, errors.New("please specify cron spec")
+		}
+		input = args[1]
+	} else {
+		b, _ := ioutil.ReadAll(os.Stdin)
+		input = string(b)
 	}
 
 	var events []Event
 	buf := new(bytes.Buffer)
-	specs := strings.Split(args[1], " ")
+	specs := strings.Split(input, " ")
 	spec := fmt.Sprintf("%v %v %v %v %v", specs[0], specs[1], specs[2], specs[3], specs[4])
 	cmd := fmt.Sprintf("%s", strings.Join(specs[5:], " "))
 
