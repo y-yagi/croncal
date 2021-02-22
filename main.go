@@ -77,30 +77,43 @@ func run(args []string) ([]byte, error) {
 		input = string(b)
 	}
 
+	lines := strings.Split(input, "\n")
+	var specs []string
+	for i := 0; i < len(lines); i++ {
+		if !strings.HasPrefix(lines[i], "#") {
+			specs = append(specs, lines[i])
+		}
+	}
+
 	var events []Event
-	buf := new(bytes.Buffer)
-	specs := strings.Split(input, " ")
-	spec := fmt.Sprintf("%v %v %v %v %v", specs[0], specs[1], specs[2], specs[3], specs[4])
-	cmd := fmt.Sprintf("%s", strings.Join(specs[5:], " "))
+	specParser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+
+	for _, spec := range specs {
+		if len(spec) == 0 {
+			continue
+		}
+		l := strings.Split(spec, " ")
+		timing := fmt.Sprintf("%v %v %v %v %v", l[0], l[1], l[2], l[3], l[4])
+		cmd := fmt.Sprintf("%s", strings.Join(l[5:], " "))
+
+		sched, err := specParser.Parse(timing)
+		if err != nil {
+			return nil, err
+		}
+
+		end := now.EndOfMonth()
+		curr := now.BeginningOfWeek()
+		for curr.Unix() < end.Unix() {
+			curr = sched.Next(curr)
+			events = append(events, Event{Title: cmd, Start: curr.Format(time.RFC3339)})
+		}
+	}
 
 	tpl, err := template.New("calc").Parse(html)
 	if err != nil {
 		return nil, err
 	}
-
-	specParser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
-	sched, err := specParser.Parse(spec)
-	if err != nil {
-		return nil, err
-	}
-
-	end := now.EndOfMonth()
-	curr := now.BeginningOfWeek()
-	for curr.Unix() < end.Unix() {
-		curr = sched.Next(curr)
-		events = append(events, Event{Title: cmd, Start: curr.Format(time.RFC3339)})
-	}
-
+	buf := new(bytes.Buffer)
 	err = tpl.Execute(buf, events)
 	if err != nil {
 		return nil, err
