@@ -36,13 +36,15 @@ const html = `
     <meta charset='utf-8' />
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/main.min.css' rel='stylesheet' />
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/main.min.js'></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'timeGridWeek',
           eventMouseEnter: function(obj) {
-						// obj.el.insertAdjacentHTML('afterend', '<div id=\"'+obj.event.id+'\" class=\"hover-end\">'+obj.event.title+'</div>');
+            tippy(obj.el, { content: obj.event.title });
           },
           events: [
 						{{range .}}
