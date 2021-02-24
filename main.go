@@ -48,6 +48,17 @@ const html = `
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'timeGridWeek',
+          slotLabelFormat: {
+            hour: 'numeric',
+            omitZeroMinute: true,
+            meridiem: 'short',
+            hour12: false
+          },
+          eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          },
           eventMouseEnter: function(obj) {
             tippy(obj.el, { content: obj.event.title });
           },
