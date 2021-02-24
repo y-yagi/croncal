@@ -26,7 +26,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ioutil.WriteFile("index.html", output, 0644)
+
+	if err = ioutil.WriteFile("index.html", output, 0644); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Generate 'index.html'.\n")
 }
 
 const html = `
