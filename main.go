@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -21,7 +22,28 @@ type Event struct {
 	Start string
 }
 
+const (
+	app = "croncal"
+)
+
+var (
+	flags    *flag.FlagSet
+	duration string
+	input    string
+)
+
+func setFlags() {
+	flags = flag.NewFlagSet(app, flag.ExitOnError)
+	flags.StringVar(&duration, "d", "week", "duration to show cron")
+}
+
 func main() {
+	setFlags()
+	flags.Parse(os.Args[1:])
+	if err := validateArgs(flag.Args()); err != nil {
+		log.Fatal(err)
+	}
+
 	output, err := run(os.Args)
 	if err != nil {
 		log.Fatal(err)
@@ -32,6 +54,28 @@ func main() {
 	}
 
 	fmt.Printf("Generate 'index.html'.\n")
+}
+
+func validateArgs(args []string) error {
+	if duration != "week" && duration != "month" {
+		return errors.New("'duration' can specify 'week' or 'month'")
+	}
+
+	if terminal.IsTerminal(0) {
+		if len(args) < 1 {
+			return errors.New("please specify cron spec")
+		}
+		input = args[0]
+	} else {
+		b, _ := ioutil.ReadAll(os.Stdin)
+		input = string(b)
+	}
+
+	if len(input) == 0 {
+		return errors.New("please specify cron spec")
+	}
+
+	return nil
 }
 
 const html = `
@@ -84,17 +128,6 @@ const html = `
 `
 
 func run(args []string) ([]byte, error) {
-	var input string
-	if terminal.IsTerminal(0) {
-		if len(args) < 2 {
-			return nil, errors.New("please specify cron spec")
-		}
-		input = args[1]
-	} else {
-		b, _ := ioutil.ReadAll(os.Stdin)
-		input = string(b)
-	}
-
 	lines := strings.Split(input, "\n")
 	var specs []string
 	for i := 0; i < len(lines); i++ {
@@ -119,8 +152,16 @@ func run(args []string) ([]byte, error) {
 			return nil, err
 		}
 
-		end := now.EndOfWeek()
-		curr := now.BeginningOfWeek()
+		var curr, end time.Time
+
+		if duration == "week" {
+			end = now.EndOfWeek()
+			curr = now.BeginningOfWeek()
+		} else {
+			end = now.EndOfMonth()
+			curr = now.BeginningOfMonth()
+		}
+
 		for curr.Unix() < end.Unix() {
 			curr = sched.Next(curr)
 			events = append(events, Event{Title: cmd, Start: curr.Format(time.RFC3339)})
