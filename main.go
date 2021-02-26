@@ -50,6 +50,9 @@ func main() {
 	}
 
 	output, err := buildTemplate(events)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err = ioutil.WriteFile("index.html", output, 0644); err != nil {
 		log.Fatal(err)
 	}
