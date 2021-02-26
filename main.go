@@ -119,7 +119,7 @@ func run(args []string) ([]byte, error) {
 			return nil, err
 		}
 
-		end := now.EndOfMonth()
+		end := now.EndOfWeek()
 		curr := now.BeginningOfWeek()
 		for curr.Unix() < end.Unix() {
 			curr = sched.Next(curr)
