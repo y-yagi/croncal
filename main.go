@@ -14,7 +14,7 @@ import (
 
 	"github.com/jinzhu/now"
 	"github.com/robfig/cron"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 type Event struct {
@@ -62,7 +62,7 @@ func validateArgs(args []string) error {
 		return errors.New("'duration' can specify 'week' or 'month'")
 	}
 
-	if terminal.IsTerminal(0) {
+	if term.IsTerminal(0) {
 		if len(args) < 1 {
 			return errors.New("please specify cron spec")
 		}
