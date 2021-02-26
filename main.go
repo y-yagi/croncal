@@ -39,7 +39,10 @@ func setFlags() {
 
 func main() {
 	setFlags()
-	flags.Parse(os.Args[1:])
+	if err := flags.Parse(os.Args[1:]); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := validateArgs(flag.Args()); err != nil {
 		log.Fatal(err)
 	}
