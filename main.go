@@ -7,14 +7,13 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/jinzhu/now"
 	"github.com/robfig/cron"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 type Event struct {
@@ -37,21 +36,35 @@ func setFlags() {
 	flags.StringVar(&duration, "d", "week", "duration to show cron")
 }
 
+func msg(err error) int {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %+v\n", app, err)
+		return 1
+	}
+	return 0
+}
+
 func main() {
 	setFlags()
-	flags.Parse(os.Args[1:])
+	if err := flags.Parse(os.Args[1:]); err != nil {
+		os.Exit(msg(err))
+	}
+
 	if err := validateArgs(flag.Args()); err != nil {
-		log.Fatal(err)
+		os.Exit(msg(err))
 	}
 
 	events, err := buildEvents()
 	if err != nil {
-		log.Fatal(err)
+		os.Exit(msg(err))
 	}
 
 	output, err := buildTemplate(events)
+	if err != nil {
+		os.Exit(msg(err))
+	}
 	if err = ioutil.WriteFile("index.html", output, 0644); err != nil {
-		log.Fatal(err)
+		os.Exit(msg(err))
 	}
 
 	fmt.Printf("Generate 'index.html'.\n")
@@ -62,7 +75,7 @@ func validateArgs(args []string) error {
 		return errors.New("'duration' can specify 'week' or 'month'")
 	}
 
-	if terminal.IsTerminal(0) {
+	if term.IsTerminal(0) {
 		if len(args) < 1 {
 			return errors.New("please specify cron spec")
 		}
@@ -97,7 +110,7 @@ func buildEvents() ([]Event, error) {
 		}
 		l := strings.Split(spec, " ")
 		timing := fmt.Sprintf("%v %v %v %v %v", l[0], l[1], l[2], l[3], l[4])
-		cmd := fmt.Sprintf("%s", strings.Join(l[5:], " "))
+		cmd := strings.Join(l[5:], " ")
 
 		sched, err := specParser.Parse(timing)
 		if err != nil {
