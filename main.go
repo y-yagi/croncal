@@ -44,11 +44,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	output, err := run(os.Args)
+	events, err := buildEvents()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	output, err := buildTemplate(events)
 	if err = ioutil.WriteFile("index.html", output, 0644); err != nil {
 		log.Fatal(err)
 	}
@@ -76,6 +77,65 @@ func validateArgs(args []string) error {
 	}
 
 	return nil
+}
+
+func buildEvents() ([]Event, error) {
+	lines := strings.Split(input, "\n")
+	var specs []string
+	for i := 0; i < len(lines); i++ {
+		if !strings.HasPrefix(lines[i], "#") {
+			specs = append(specs, lines[i])
+		}
+	}
+
+	var events []Event
+	specParser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+
+	for _, spec := range specs {
+		if len(spec) == 0 {
+			continue
+		}
+		l := strings.Split(spec, " ")
+		timing := fmt.Sprintf("%v %v %v %v %v", l[0], l[1], l[2], l[3], l[4])
+		cmd := fmt.Sprintf("%s", strings.Join(l[5:], " "))
+
+		sched, err := specParser.Parse(timing)
+		if err != nil {
+			return nil, err
+		}
+
+		var curr, end time.Time
+
+		if duration == "week" {
+			end = now.EndOfWeek()
+			curr = now.BeginningOfWeek()
+		} else {
+			end = now.EndOfMonth()
+			curr = now.BeginningOfMonth()
+		}
+
+		for curr.Unix() < end.Unix() {
+			curr = sched.Next(curr)
+			events = append(events, Event{Title: cmd, Start: curr.Format(time.RFC3339)})
+		}
+	}
+
+	return events, nil
+}
+
+func buildTemplate(events []Event) ([]byte, error) {
+	tpl, err := template.New("calc").Parse(html)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := new(bytes.Buffer)
+	err = tpl.Execute(buf, events)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 const html = `
@@ -126,57 +186,3 @@ const html = `
   </body>
 </html>
 `
-
-func run(args []string) ([]byte, error) {
-	lines := strings.Split(input, "\n")
-	var specs []string
-	for i := 0; i < len(lines); i++ {
-		if !strings.HasPrefix(lines[i], "#") {
-			specs = append(specs, lines[i])
-		}
-	}
-
-	var events []Event
-	specParser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
-
-	for _, spec := range specs {
-		if len(spec) == 0 {
-			continue
-		}
-		l := strings.Split(spec, " ")
-		timing := fmt.Sprintf("%v %v %v %v %v", l[0], l[1], l[2], l[3], l[4])
-		cmd := fmt.Sprintf("%s", strings.Join(l[5:], " "))
-
-		sched, err := specParser.Parse(timing)
-		if err != nil {
-			return nil, err
-		}
-
-		var curr, end time.Time
-
-		if duration == "week" {
-			end = now.EndOfWeek()
-			curr = now.BeginningOfWeek()
-		} else {
-			end = now.EndOfMonth()
-			curr = now.BeginningOfMonth()
-		}
-
-		for curr.Unix() < end.Unix() {
-			curr = sched.Next(curr)
-			events = append(events, Event{Title: cmd, Start: curr.Format(time.RFC3339)})
-		}
-	}
-
-	tpl, err := template.New("calc").Parse(html)
-	if err != nil {
-		return nil, err
-	}
-	buf := new(bytes.Buffer)
-	err = tpl.Execute(buf, events)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
