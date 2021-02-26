@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -37,27 +36,35 @@ func setFlags() {
 	flags.StringVar(&duration, "d", "week", "duration to show cron")
 }
 
+func msg(err error) int {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %+v\n", app, err)
+		return 1
+	}
+	return 0
+}
+
 func main() {
 	setFlags()
 	if err := flags.Parse(os.Args[1:]); err != nil {
-		log.Fatal(err)
+		os.Exit(msg(err))
 	}
 
 	if err := validateArgs(flag.Args()); err != nil {
-		log.Fatal(err)
+		os.Exit(msg(err))
 	}
 
 	events, err := buildEvents()
 	if err != nil {
-		log.Fatal(err)
+		os.Exit(msg(err))
 	}
 
 	output, err := buildTemplate(events)
 	if err != nil {
-		log.Fatal(err)
+		os.Exit(msg(err))
 	}
 	if err = ioutil.WriteFile("index.html", output, 0644); err != nil {
-		log.Fatal(err)
+		os.Exit(msg(err))
 	}
 
 	fmt.Printf("Generate 'index.html'.\n")
