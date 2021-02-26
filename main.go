@@ -100,7 +100,7 @@ func buildEvents() ([]Event, error) {
 		}
 		l := strings.Split(spec, " ")
 		timing := fmt.Sprintf("%v %v %v %v %v", l[0], l[1], l[2], l[3], l[4])
-		cmd := fmt.Sprintf("%s", strings.Join(l[5:], " "))
+		cmd := strings.Join(l[5:], " ")
 
 		sched, err := specParser.Parse(timing)
 		if err != nil {
