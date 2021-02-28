@@ -138,7 +138,12 @@ func buildEvents(input string) ([]Event, error) {
 }
 
 func buildTemplate(events []Event) ([]byte, error) {
-	tpl, err := template.New("calc").Parse(html)
+	html, err := ioutil.ReadFile("index.tmpl")
+	if err != nil {
+		return nil, err
+	}
+
+	tpl, err := template.New("calc").Parse(string(html))
 	if err != nil {
 		return nil, err
 	}
@@ -151,52 +156,3 @@ func buildTemplate(events []Event) ([]byte, error) {
 
 	return buf.Bytes(), nil
 }
-
-const html = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset='utf-8' />
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/main.min.css' rel='stylesheet' />
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/main.min.js'></script>
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="https://unpkg.com/tippy.js@6"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar');
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'timeGridWeek',
-          slotLabelFormat: {
-            hour: 'numeric',
-            omitZeroMinute: true,
-            meridiem: 'short',
-            hour12: false
-          },
-          eventTimeFormat: {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          },
-          eventMouseEnter: function(obj) {
-            tippy(obj.el, { content: obj.event.title });
-          },
-          events: [
-						{{range .}}
-            {
-              title  : {{.Title}},
-              start  : {{.Start}},
-              allDay : false
-            },
-						{{end}}
-          ]
-        });
-        calendar.render();
-      });
-
-    </script>
-  </head>
-  <body>
-    <div id='calendar'></div>
-  </body>
-</html>
-`
