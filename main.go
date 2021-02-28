@@ -28,7 +28,6 @@ const (
 var (
 	flags    *flag.FlagSet
 	duration string
-	input    string
 )
 
 func setFlags() {
@@ -50,11 +49,12 @@ func main() {
 		os.Exit(msg(err))
 	}
 
-	if err := validateArgs(flag.Args()); err != nil {
+	input, err := validateArgs(flag.Args())
+	if err != nil {
 		os.Exit(msg(err))
 	}
 
-	events, err := buildEvents()
+	events, err := buildEvents(input)
 	if err != nil {
 		os.Exit(msg(err))
 	}
@@ -70,14 +70,15 @@ func main() {
 	fmt.Printf("Generate 'index.html'.\n")
 }
 
-func validateArgs(args []string) error {
+func validateArgs(args []string) (string, error) {
 	if duration != "week" && duration != "month" {
-		return errors.New("'duration' can specify 'week' or 'month'")
+		return "", errors.New("'duration' can specify 'week' or 'month'")
 	}
 
+	var input string
 	if term.IsTerminal(0) {
 		if len(args) < 1 {
-			return errors.New("please specify cron spec")
+			return "", errors.New("please specify cron spec")
 		}
 		input = args[0]
 	} else {
@@ -86,13 +87,13 @@ func validateArgs(args []string) error {
 	}
 
 	if len(input) == 0 {
-		return errors.New("please specify cron spec")
+		return "", errors.New("please specify cron spec")
 	}
 
-	return nil
+	return input, nil
 }
 
-func buildEvents() ([]Event, error) {
+func buildEvents(input string) ([]Event, error) {
 	lines := strings.Split(input, "\n")
 	var specs []string
 	for i := 0; i < len(lines); i++ {
