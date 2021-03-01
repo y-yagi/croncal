@@ -54,7 +54,15 @@ func main() {
 		os.Exit(msg(err))
 	}
 
-	events, err := buildEvents(input)
+	var start, end time.Time
+	if duration == "week" {
+		end = now.EndOfWeek()
+		start = now.BeginningOfWeek()
+	} else {
+		end = now.EndOfMonth()
+		start = now.BeginningOfMonth()
+	}
+	events, err := buildEvents(input, start, end)
 	if err != nil {
 		os.Exit(msg(err))
 	}
@@ -93,7 +101,7 @@ func validateArgs(args []string) (string, error) {
 	return input, nil
 }
 
-func buildEvents(input string) ([]Event, error) {
+func buildEvents(input string, start, end time.Time) ([]Event, error) {
 	lines := strings.Split(input, "\n")
 	var specs []string
 	for i := 0; i < len(lines); i++ {
@@ -118,16 +126,7 @@ func buildEvents(input string) ([]Event, error) {
 			return nil, err
 		}
 
-		var curr, end time.Time
-
-		if duration == "week" {
-			end = now.EndOfWeek()
-			curr = now.BeginningOfWeek()
-		} else {
-			end = now.EndOfMonth()
-			curr = now.BeginningOfMonth()
-		}
-
+		curr := start
 		for curr.Unix() < end.Unix() {
 			curr = sched.Next(curr)
 			events = append(events, Event{Title: cmd, Start: curr.Format(time.RFC3339)})
