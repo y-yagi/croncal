@@ -142,7 +142,7 @@ func buildTemplate(events []Event) ([]byte, error) {
 		return nil, err
 	}
 
-	tpl, err := template.New("calc").Parse(string(html))
+	tpl, err := template.New("index.tmpl").Parse(string(html))
 	if err != nil {
 		return nil, err
 	}
